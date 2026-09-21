@@ -130,7 +130,7 @@ fun SetupScreen(
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    "Not available yet. Each step must become its own real session, and that needs the capture engine (Phase 3). For now run these tests one by one.",
+                    "Not available yet. Automatic sequencing is not implemented: each step must become its own real session with its own capture. For now run these tests one by one.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = AF.TextSecondary
                 )

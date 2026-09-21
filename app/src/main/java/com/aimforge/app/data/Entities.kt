@@ -69,7 +69,9 @@ data class TestSessionEntity(
     val stability: Int? = null,
     val errorState: String? = null,
     val confidence: Int? = null,
-    val recommendation: String? = null
+    val recommendation: String? = null,
+    /** Real reason a session failed or a capture could not start. null when nothing went wrong. */
+    val failureReason: String? = null
 ) {
     val sessionState: SessionState get() = SessionState.valueOf(state)
     val captureStatusEnum: CaptureStatus get() = CaptureStatus.valueOf(captureStatus)
@@ -82,7 +84,7 @@ data class TestSessionEntity(
     val hasAnalysis: Boolean get() = analysisStatusEnum == AnalysisStatus.ANALYZED && aimScore != null
 }
 
-/** Actual captured data. Every field stays null until Phase 3 really records something. */
+/** Real capture metadata. No frames or video are stored (storageLocation stays null); only counts and timing measured from delivered frames. */
 @Entity(tableName = "captures")
 data class CaptureEntity(
     @PrimaryKey val captureId: String,
@@ -95,7 +97,11 @@ data class CaptureEntity(
     val fps: Float?,
     val storageLocation: String?,
     val permissionGranted: Boolean?,
-    val status: String
+    val status: String,
+    /** Sampled frames (a sparse pixel grid is checked on some frames) and how many of them were completely black. */
+    val sampledFrameCount: Int? = null,
+    val blankFrameCount: Int? = null,
+    val stopReason: String? = null
 )
 
 /** Diagnostic batch definition. Each step becomes an independent real session only when it is actually run. */

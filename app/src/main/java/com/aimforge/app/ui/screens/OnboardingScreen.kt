@@ -116,7 +116,7 @@ fun OnboardingScreen(vm: AppViewModel) {
                         Spacer(Modifier.height(8.dp))
                         Text(
                             "1. Lab tab mein apni current BGMI sensitivity manually daalo. App BGMI ki values khud nahi padh sakta.\n" +
-                                "2. Screen capture permission aur pehla diagnostic test agle phases mein aayega.",
+                                "2. Screen capture ki permission tab poochi jayegi jab tum kisi test mein START dabaoge. Android ka apna dialog aata hai, tum mana bhi kar sakte ho.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = AF.TextSecondary
                         )

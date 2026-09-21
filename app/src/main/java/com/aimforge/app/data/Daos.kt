@@ -51,11 +51,20 @@ interface SessionDao {
 
 @Dao
 interface CaptureDao {
-    @Query("SELECT * FROM captures")
+    @Query("SELECT * FROM captures ORDER BY startTime ASC")
     fun observeAll(): Flow<List<CaptureEntity>>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(capture: CaptureEntity)
+
+    @Update
+    suspend fun update(capture: CaptureEntity)
+
+    @Query("SELECT * FROM captures WHERE captureId = :captureId")
+    suspend fun get(captureId: String): CaptureEntity?
+
+    @Query("SELECT * FROM captures WHERE sessionId = :sessionId ORDER BY startTime DESC LIMIT 1")
+    suspend fun latestForSession(sessionId: String): CaptureEntity?
 
     @Query("SELECT * FROM captures WHERE sessionId = :sessionId")
     suspend fun forSession(sessionId: String): List<CaptureEntity>

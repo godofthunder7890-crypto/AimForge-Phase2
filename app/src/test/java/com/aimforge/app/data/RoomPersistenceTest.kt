@@ -3,9 +3,7 @@ package com.aimforge.app.data
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.aimforge.app.domain.Availability
-import com.aimforge.app.domain.CaptureEngine
-import com.aimforge.app.domain.CaptureOutcome
+import com.aimforge.app.domain.NotImplementedCaptureEngine
 import com.aimforge.app.domain.ScopeType
 import com.aimforge.app.domain.SessionDraft
 import com.aimforge.app.domain.SessionManager
@@ -33,11 +31,7 @@ class RoomPersistenceTest {
     private lateinit var ctx: Context
     private val dbName = "persist-test.db"
 
-    private val engine = object : CaptureEngine {
-        override fun availability() = Availability.NotAvailable("Screen capture engine is not available yet.")
-        override suspend fun start(sessionId: String) = CaptureOutcome.NotImplemented
-        override suspend fun stop(sessionId: String) = CaptureOutcome.NotImplemented
-    }
+    private val engine = NotImplementedCaptureEngine()
 
     @Before fun setUp() {
         ctx = ApplicationProvider.getApplicationContext()
@@ -66,7 +60,7 @@ class RoomPersistenceTest {
         var db = open()
         var manager = SessionManager(RoomSessionStore(db), engine)
         val id = (manager.createSession(SessionDraft(TestMode.SPRAY_3X, scope = ScopeType.X3, weapon = "M416", cameraSensitivity = 120)) as SessionResult.Ok).session.sessionId
-        manager.start(id)
+        manager.startCapture(id, null)
         db.close()
 
         db = open()

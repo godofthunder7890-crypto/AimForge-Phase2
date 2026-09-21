@@ -37,3 +37,25 @@ UI only reads Room via Flows. Nothing leaves the device (no INTERNET permission)
 - Cancel rule: persisted sessions are marked CANCELLED and kept; only explicit Delete removes a record. Drafts are never persisted.
 - Timer is wall-clock based (start, pause, total paused time stored in Room) so it survives app restart. Changing the phone clock during a session would distort it.
 - Target SDK is 35. Android 16 (API 36) devices run it fine; compileSdk 36 needs a newer AGP and is left for the release phase.
+
+## Phase 3 notes
+- `capture/CaptureService` (foreground, mediaProjection) owns MediaProjection, VirtualDisplay, ImageReader on one HandlerThread. `capture/MediaProjectionCaptureEngine` exposes a `StateFlow<CaptureSnapshot>` and the start/stop handshake. `domain/CaptureMonitor` saves progress and finalizes sessions from engine state, even with no screen open.
+- Only `SessionManager` moves a session between states; `finalizeCapture` is idempotent (mutex) so user End, system stop and recovery cannot double-finalize.
+- DB v3: `test_sessions.failureReason`, `captures.sampledFrameCount/blankFrameCount/stopReason`. Migration 2 to 3 only adds nullable columns.
+- Capture resolution is fixed at long side 1280 px, resized on rotation. This is what Phase 4 will analyze.
+
+### Phase 3 startup ordering and race fix
+
+The capture service can publish `RUNNING`, `STOPPED`, or `FAILED` before the
+suspending `CaptureEngine.start()` call returns. Previously, `SessionManager`
+inserted the `captures` row only after a `Started` result. A monitor callback
+could therefore finalize the session while no capture row existed; the later
+insert either created an orphan or failed to persist the real terminal metadata.
+
+`SessionManager` now allocates the capture ID, moves the session to
+`CAPTURE_PENDING`, and inserts the metadata row before invoking the engine.
+Startup, stop, callback finalization, progress, recovery, and deletion share one
+`Mutex`. The monitor may still observe an early callback, but it waits until the
+row and session transition are committed. Updates also verify the callback's
+`captureId`, so a late service callback cannot update another capture. No sleep,
+retry loop, or fake metric is used.

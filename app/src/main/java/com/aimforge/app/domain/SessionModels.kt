@@ -40,7 +40,9 @@ enum class CaptureStatus(val label: String) {
     NOT_AVAILABLE("Not available yet"),
     CAPTURING("Capturing"),
     CAPTURED("Captured"),
-    FAILED("Failed")
+    FAILED("Failed"),
+    PERMISSION_DENIED("Permission denied"),
+    CANCELLED("Cancelled")
 }
 
 enum class AnalysisStatus(val label: String) {

@@ -34,3 +34,12 @@ Priority: real functionality > UI, accurate analysis > animation, real data > de
 6. Behaviour with insufficient data defined?
 7. Behaviour when screen capture fails defined?
 8. Behaviour when CV cannot find crosshair/target defined?
+
+## Phase 3 data sources
+| Screen value | Source |
+|---|---|
+| Frames received, measured FPS, last frame age | counters updated only when Android delivers a frame to ImageReader |
+| Resolution | size of the VirtualDisplay actually created |
+| Non-black samples | pixel grid read from real delivered frames |
+| Capture status "Capturing" | engine state RUNNING for that session (VirtualDisplay exists) |
+| Permission denied / failure reasons | Android result code or the real exception message |

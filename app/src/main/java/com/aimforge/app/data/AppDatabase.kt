@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         DiagnosticBatchEntity::class,
         DiagnosticStepEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -66,9 +66,19 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v2 -> v3: real capture pipeline. Only adds nullable columns, no data is touched. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE test_sessions ADD COLUMN failureReason TEXT")
+                db.execSQL("ALTER TABLE captures ADD COLUMN sampledFrameCount INTEGER")
+                db.execSQL("ALTER TABLE captures ADD COLUMN blankFrameCount INTEGER")
+                db.execSQL("ALTER TABLE captures ADD COLUMN stopReason TEXT")
+            }
+        }
+
         fun create(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "aimforge.db")
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
     }
 }
