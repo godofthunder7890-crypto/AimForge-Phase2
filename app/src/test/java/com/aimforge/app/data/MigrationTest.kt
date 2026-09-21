@@ -63,5 +63,6 @@ class MigrationTest {
         assertEquals(1, db.sessionDao().observeAll().first().size)
         db.close()
         ctx.deleteDatabase(name)
+        Unit
     }
 }
