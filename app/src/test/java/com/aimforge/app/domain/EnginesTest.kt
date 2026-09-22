@@ -8,7 +8,7 @@ import org.junit.Test
 class EnginesTest {
     @Test fun placeholdersReturnNotImplementedAndNeverValues() = runBlocking {
         assertTrue(NotImplementedCaptureEngine().availability() is Availability.NotAvailable)
-        assertEquals(CaptureOutcome.NotImplemented, NotImplementedCaptureEngine().start("x"))
+        assertEquals(CaptureOutcome.NotImplemented, NotImplementedCaptureEngine().start("x", "y", CaptureGrant(0, Unit)))
         assertEquals(CaptureOutcome.NotImplemented, NotImplementedCaptureEngine().stop("x"))
         assertEquals(AnalysisOutcome.NotImplemented, NotImplementedAnalysisEngine().analyze("x", "y"))
         assertEquals(RecommendationOutcome.NotImplemented, NotImplementedRecommendationEngine().recommend(ScopeType.X3))

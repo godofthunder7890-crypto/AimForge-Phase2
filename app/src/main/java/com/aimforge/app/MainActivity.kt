@@ -16,9 +16,10 @@ class MainActivity : ComponentActivity() {
         val app = application as AimForgeApp
         val repo = app.repository
         val manager = app.sessionManager
+        val engine = app.captureEngine
         setContent {
             AimForgeTheme {
-                val vm: AppViewModel = viewModel(factory = AppViewModel.Factory(repo, manager))
+                val vm: AppViewModel = viewModel(factory = AppViewModel.Factory(repo, manager, engine.state))
                 AimForgeRoot(vm)
             }
         }

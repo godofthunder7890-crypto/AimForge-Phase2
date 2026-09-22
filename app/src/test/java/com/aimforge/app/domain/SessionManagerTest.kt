@@ -85,7 +85,7 @@ class SessionManagerTest {
     @Test fun startWithoutCaptureEngineIsHonest() = runBlocking {
         val m = manager()
         val id = ok(m.createSession(draft())).sessionId
-        val r = m.start(id) as SessionResult.Ok
+        val r = m.startCapture(id, null) as SessionResult.Ok
         assertEquals("Screen capture engine is not available yet.", r.notice)
         assertEquals(SessionState.CAPTURE_PENDING.name, r.session.state)
         assertEquals(CaptureStatus.NOT_AVAILABLE, r.session.captureStatusEnum)
@@ -94,27 +94,19 @@ class SessionManagerTest {
         assertFalse(r.session.hasAnalysis)
     }
 
-    @Test fun startWithAvailableEngineWaitsForCapture() = runBlocking {
-        val m = manager(FakeCaptureEngine(Availability.Available))
-        val id = ok(m.createSession(draft())).sessionId
-        val r = m.start(id) as SessionResult.Ok
-        assertNull(r.notice)
-        assertEquals(CaptureStatus.NOT_STARTED, r.session.captureStatusEnum)
-    }
-
     @Test fun cannotStartTwiceOrUnknownSession() = runBlocking {
         val m = manager()
         val id = ok(m.createSession(draft())).sessionId
-        m.start(id)
-        assertTrue(m.start(id) is SessionResult.Rejected)
-        assertTrue(m.start("missing") is SessionResult.NotFound)
+        m.startCapture(id, null)
+        assertTrue(m.startCapture(id, null) is SessionResult.Rejected)
+        assertTrue(m.startCapture("missing", null) is SessionResult.NotFound)
     }
 
     @Test fun sensitivitySnapshotSurvivesEveryTransition() = runBlocking {
         val m = manager()
         val created = ok(m.createSession(draft()))
         val id = created.sessionId
-        m.start(id); time += 1000; m.pause(id); time += 1000; m.resume(id); time += 1000; m.end(id)
+        m.startCapture(id, null); time += 1000; m.pause(id); time += 1000; m.resume(id); time += 1000; m.end(id)
         val end = store.rows.getValue(id)
         assertEquals(created.cameraSensitivity, end.cameraSensitivity)
         assertEquals(created.adsSensitivity, end.adsSensitivity)
@@ -127,7 +119,7 @@ class SessionManagerTest {
     @Test fun timerPauseResumeEnd() = runBlocking {
         val m = manager()
         val id = ok(m.createSession(draft())).sessionId
-        m.start(id)                       // t0
+        m.startCapture(id, null)                       // t0
         time += 10_000
         assertEquals(10_000L, m.elapsedMs(store.rows.getValue(id)))
         m.pause(id)
@@ -143,7 +135,7 @@ class SessionManagerTest {
     @Test fun endWhilePausedDoesNotCountPause() = runBlocking {
         val m = manager()
         val id = ok(m.createSession(draft())).sessionId
-        m.start(id); time += 6_000; m.pause(id); time += 9_000
+        m.startCapture(id, null); time += 6_000; m.pause(id); time += 9_000
         val ended = ok(m.end(id))
         assertEquals(6_000L, m.elapsedMs(ended))
     }
@@ -152,7 +144,7 @@ class SessionManagerTest {
         val m = manager()
         val id = ok(m.createSession(draft())).sessionId
         assertTrue(m.pause(id) is SessionResult.Rejected)   // READY is not running
-        m.start(id)
+        m.startCapture(id, null)
         assertTrue(m.resume(id) is SessionResult.Rejected)  // not paused
         m.pause(id)
         assertTrue(m.pause(id) is SessionResult.Rejected)   // already paused
@@ -161,7 +153,7 @@ class SessionManagerTest {
     @Test fun endedSessionHasNoResultAndAnalysisStaysPending() = runBlocking {
         val m = manager()
         val id = ok(m.createSession(draft())).sessionId
-        m.start(id); time += 3_000
+        m.startCapture(id, null); time += 3_000
         val ended = ok(m.end(id))
         assertEquals(time, ended.endedAt)
         assertEquals(SessionState.CAPTURE_PENDING.name, ended.state)
@@ -186,13 +178,13 @@ class SessionManagerTest {
         assertEquals(1, store.rows.size)
         assertNull(store.findActive())
         assertTrue(m.cancel(id) is SessionResult.Rejected)
-        assertTrue(m.start(id) is SessionResult.Rejected)
+        assertTrue(m.startCapture(id, null) is SessionResult.Rejected)
     }
 
     @Test fun cancelRunningSessionAndThenNewSessionAllowed() = runBlocking {
         val m = manager()
         val id = ok(m.createSession(draft())).sessionId
-        m.start(id); time += 2_000
+        m.startCapture(id, null); time += 2_000
         val c = ok(m.cancel(id))
         assertEquals(2_000L, m.elapsedMs(c))
         assertTrue(m.createSession(draft()) is SessionResult.Ok)

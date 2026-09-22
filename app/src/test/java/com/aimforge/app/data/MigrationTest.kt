@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class MigrationTest {
-    @Test fun migration1to2_keepsProfileAndSensitivity_replacesSessionTable() = runBlocking {
+    @Test fun migration1to3_keepsProfileAndSensitivity_replacesSessionTable() = runBlocking {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val name = "migration-test.db"
         ctx.deleteDatabase(name)
@@ -40,7 +40,7 @@ class MigrationTest {
         v1.writableDatabase.close()
 
         val db = Room.databaseBuilder(ctx, AppDatabase::class.java, name)
-            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
             .allowMainThreadQueries()
             .build()
 
@@ -63,6 +63,5 @@ class MigrationTest {
         assertEquals(1, db.sessionDao().observeAll().first().size)
         db.close()
         ctx.deleteDatabase(name)
-        Unit
     }
 }

@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Phase 1: no permissions. Screen capture (MediaProjection) arrives in Phase 3
-         and will add a foreground service declaration. No network permission, ever. -->
+    <!-- Screen capture (MediaProjection) needs a foreground service of type mediaProjection.
+         POST_NOTIFICATIONS lets Android show the capture notification. The user approves every capture in
+         Android's own dialog. No INTERNET, no storage permission, no accessibility service. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".AimForgeApp"
@@ -20,5 +24,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".capture.CaptureService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
     </application>
 </manifest>

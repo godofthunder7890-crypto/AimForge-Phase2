@@ -25,8 +25,12 @@ fun ActiveSessionCard(session: TestSessionEntity, onOpen: () -> Unit, modifier: 
         ) {
             Text("Open session", style = MaterialTheme.typography.labelMedium, color = AF.TextSecondary)
             StatusBadge(
-                text = if (session.sessionState == SessionState.READY) "Ready"
-                else if (session.pausedAt != null) "Paused" else "Waiting"
+                text = when {
+                    session.sessionState == SessionState.READY -> "Ready"
+                    session.pausedAt != null -> "Paused"
+                    session.sessionState == SessionState.CAPTURING -> "Capturing"
+                    else -> "Waiting"
+                }
             )
         }
         Text(title, style = MaterialTheme.typography.titleMedium, color = AF.TextPrimary)

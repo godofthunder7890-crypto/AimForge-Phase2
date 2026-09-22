@@ -75,7 +75,7 @@ fun SessionDetailScreen(
         }
 
         val elapsed = vm.elapsedMs(s, System.currentTimeMillis())
-        val capture = captures.firstOrNull { it.sessionId == s.sessionId }
+        val capture = captures.lastOrNull { it.sessionId == s.sessionId }
 
         GlassCard(Modifier.fillMaxWidth()) {
             SectionTitle("TEST")
@@ -114,14 +114,27 @@ fun SessionDetailScreen(
             SectionTitle("CAPTURE")
             KeyValueRow("Status", s.captureStatusEnum.label)
             when (s.captureStatusEnum) {
-                CaptureStatus.NOT_STARTED -> Text("Waiting for capture engine.", style = MaterialTheme.typography.bodyMedium, color = AF.TextSecondary)
-                CaptureStatus.NOT_AVAILABLE -> Text("Screen capture engine is not available yet. No gameplay was recorded.", style = MaterialTheme.typography.bodyMedium, color = AF.TextSecondary)
+                CaptureStatus.NOT_STARTED -> Text("Waiting for capture to start.", style = MaterialTheme.typography.bodyMedium, color = AF.TextSecondary)
+                CaptureStatus.NOT_AVAILABLE -> Text("Screen capture engine was not available. No gameplay was recorded.", style = MaterialTheme.typography.bodyMedium, color = AF.TextSecondary)
+                CaptureStatus.PERMISSION_DENIED -> Text("Screen-capture permission was denied. Nothing was captured.", style = MaterialTheme.typography.bodyMedium, color = AF.Signal)
                 else -> Unit
             }
             capture?.let { c ->
-                KeyValueRow("Frames", c.frameCount?.toString() ?: "--")
+                KeyValueRow("Permission granted", when (c.permissionGranted) { true -> "Yes"; false -> "No"; null -> "Unknown" })
+                KeyValueRow("Frames received", c.frameCount?.toString() ?: "--")
                 KeyValueRow("Resolution", if (c.widthPx != null && c.heightPx != null) "${c.widthPx} x ${c.heightPx}" else "--")
-                KeyValueRow("Capture FPS", c.fps?.let { "%.1f".format(it) } ?: "--")
+                KeyValueRow("Measured frame rate", c.fps?.let { "%.1f /s".format(it) } ?: "--")
+                KeyValueRow(
+                    "Non-black samples",
+                    if (c.sampledFrameCount == null || c.sampledFrameCount == 0) "--"
+                    else "${c.sampledFrameCount - (c.blankFrameCount ?: 0)} of ${c.sampledFrameCount}"
+                )
+                if (c.startTime != null && c.endTime != null) {
+                    KeyValueRow("Capture duration", SessionFormat.duration((c.endTime - c.startTime).coerceAtLeast(0L)))
+                }
+                c.stopReason?.let { KeyValueRow("Ended by", it) }
+                s.failureReason?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = AF.Signal) }
+                KeyValueRow("Frames stored", "No (counted live, not saved)")
             }
         }
 

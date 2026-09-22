@@ -1,8 +1,12 @@
 package com.aimforge.app.domain
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
 /**
- * Pipeline interfaces that Phases 3-6 implement. Phase 2 ships only NOT_IMPLEMENTED placeholders.
- * A placeholder must never return metrics, scores or recommendations.
+ * Pipeline interfaces. Capture is real since Phase 3; analysis and recommendation are still
+ * NOT_IMPLEMENTED placeholders. A placeholder must never return metrics, scores or recommendations.
  */
 
 sealed interface Availability {
@@ -11,15 +15,41 @@ sealed interface Availability {
 }
 
 // ---- Capture (Phase 3) ----
+
+enum class CaptureRuntimeStatus { IDLE, STARTING, RUNNING, STOPPED, FAILED }
+
+/** What the capture engine is really doing right now. Counters come from frames actually delivered by Android. */
+data class CaptureSnapshot(
+    val status: CaptureRuntimeStatus = CaptureRuntimeStatus.IDLE,
+    val sessionId: String? = null,
+    val captureId: String? = null,
+    val width: Int? = null,
+    val height: Int? = null,
+    val frameCount: Int = 0,
+    val measuredFps: Float? = null,
+    val sampledFrames: Int = 0,
+    val blankSampledFrames: Int = 0,
+    val startedAtMs: Long? = null,
+    val lastFrameAtMs: Long? = null,
+    val stoppedAtMs: Long? = null,
+    val stopReason: String? = null,
+    val failureReason: String? = null
+)
+
+/** Result of the Android screen-capture consent dialog. [token] is the platform result Intent (opaque to the domain). */
+class CaptureGrant(val resultCode: Int, val token: Any)
+
 sealed interface CaptureOutcome {
     data object NotImplemented : CaptureOutcome
     data class Failed(val reason: String) : CaptureOutcome
-    data class Completed(val captureId: String) : CaptureOutcome
+    data class Started(val snapshot: CaptureSnapshot) : CaptureOutcome
+    data class Stopped(val snapshot: CaptureSnapshot) : CaptureOutcome
 }
 
 interface CaptureEngine {
+    val state: StateFlow<CaptureSnapshot>
     fun availability(): Availability
-    suspend fun start(sessionId: String): CaptureOutcome
+    suspend fun start(sessionId: String, captureId: String, grant: CaptureGrant): CaptureOutcome
     suspend fun stop(sessionId: String): CaptureOutcome
 }
 
@@ -66,9 +96,10 @@ interface RecommendationEngine {
 
 // ---- Placeholders: explicit NOT_IMPLEMENTED, no sample values ----
 class NotImplementedCaptureEngine : CaptureEngine {
-    override fun availability() = Availability.NotAvailable("Screen capture engine is not available yet.")
-    override suspend fun start(sessionId: String) = CaptureOutcome.NotImplemented
-    override suspend fun stop(sessionId: String) = CaptureOutcome.NotImplemented
+    override val state: StateFlow<CaptureSnapshot> = MutableStateFlow(CaptureSnapshot()).asStateFlow()
+    override fun availability(): Availability = Availability.NotAvailable("Screen capture engine is not available yet.")
+    override suspend fun start(sessionId: String, captureId: String, grant: CaptureGrant): CaptureOutcome = CaptureOutcome.NotImplemented
+    override suspend fun stop(sessionId: String): CaptureOutcome = CaptureOutcome.NotImplemented
 }
 
 class NotImplementedAnalysisEngine : AnalysisEngine {
