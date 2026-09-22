@@ -196,7 +196,7 @@ class SessionManager(
     ): SessionResult {
         val capture = store.captureForSession(pending.sessionId)
         if (capture != null && capture.captureId == captureId) {
-            val measured = snapshot?.let(capture::withSnapshot) ?: capture
+            val measured = snapshot?.let { capture.withSnapshot(it) } ?: capture
             store.updateCapture(
                 measured.copy(
                     endTime = snapshot?.stoppedAtMs ?: clock(),
