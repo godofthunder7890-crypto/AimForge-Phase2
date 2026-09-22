@@ -13,7 +13,7 @@ class CaptureMonitorTest {
     private val engine = FakeCaptureEngine()
     private val manager = SessionManager(store, engine, clock = { 2_000_000L }, newId = { "x${store.rows.size + store.captures.size}" })
 
-    private suspend fun waitFor(cond: () -> Boolean) = withTimeout(3_000) { while (!cond()) delay(10) }
+    private suspend fun waitFor(cond: suspend () -> Boolean) = withTimeout(3_000) { while (!cond()) delay(10) }
 
     @Test fun captureEndingOnItsOwnIsSavedWithoutAnyScreenOpen() = runBlocking {
         val id = (manager.createSession(SessionDraft(TestMode.SPRAY_3X)) as SessionResult.Ok).session.sessionId
