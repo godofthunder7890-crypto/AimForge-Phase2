@@ -15,7 +15,7 @@ class CaptureMonitorTest {
 
     private suspend fun waitFor(cond: suspend () -> Boolean) = withTimeout(3_000) { while (!cond()) delay(10) }
 
-    @Test fun captureEndingOnItsOwnIsSavedWithoutAnyScreenOpen() = runBlocking {
+    @Test fun captureEndingOnItsOwnIsSavedWithoutAnyScreenOpen(): Unit = runBlocking {
         val id = (manager.createSession(SessionDraft(TestMode.SPRAY_3X)) as SessionResult.Ok).session.sessionId
         manager.startCapture(id, CaptureGrant(-1, Unit))
         val scope = CoroutineScope(Dispatchers.Default)
@@ -30,7 +30,7 @@ class CaptureMonitorTest {
         scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
     }
 
-    @Test fun failureAfterStartWithoutFramesFailsTheSession() = runBlocking {
+    @Test fun failureAfterStartWithoutFramesFailsTheSession(): Unit = runBlocking {
         val id = (manager.createSession(SessionDraft(TestMode.SPRAY_3X)) as SessionResult.Ok).session.sessionId
         manager.startCapture(id, CaptureGrant(-1, Unit))
         val scope = CoroutineScope(Dispatchers.Default)

@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class MigrationTest {
-    @Test fun migration1to3_keepsProfileAndSensitivity_replacesSessionTable() = runBlocking {
+    @Test fun migration1to3_keepsProfileAndSensitivity_replacesSessionTable(): Unit = runBlocking {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val name = "migration-test.db"
         ctx.deleteDatabase(name)
