@@ -17,6 +17,7 @@ class RoomSessionStore(private val db: AppDatabase) : SessionStore {
         db.withTransaction {
             db.captureDao().deleteForSession(sessionId)
             db.diagnosticDao().unlinkSession(sessionId)
+            db.cvAnalysisDao().deleteForSession(sessionId)
             db.sessionDao().delete(sessionId)
         }
     }

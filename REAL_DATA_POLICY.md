@@ -43,3 +43,12 @@ Priority: real functionality > UI, accurate analysis > animation, real data > de
 | Non-black samples | pixel grid read from real delivered frames |
 | Capture status "Capturing" | engine state RUNNING for that session (VirtualDisplay exists) |
 | Permission denied / failure reasons | Android result code or the real exception message |
+
+## Phase 4 data sources
+| Screen value | Source |
+|---|---|
+| Frames processed, frames with crosshair, detection rate | Real captured frames submitted to the CV pipeline |
+| Movement samples, speed, distance | Accepted crosshair detections with real frame timestamps |
+| Confidence | Detector evidence from contrast, compactness, and centeredness |
+| Frames skipped | Real capture frame count minus frames submitted for analysis |
+| Frames with target | Always 0 in this phase; no real target detector is shipped |

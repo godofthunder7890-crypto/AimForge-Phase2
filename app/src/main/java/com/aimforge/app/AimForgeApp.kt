@@ -2,6 +2,7 @@ package com.aimforge.app
 
 import android.app.Application
 import com.aimforge.app.capture.MediaProjectionCaptureEngine
+import com.aimforge.app.data.RoomCvAnalysisStore
 import com.aimforge.app.data.AimForgeRepository
 import com.aimforge.app.data.AppDatabase
 import com.aimforge.app.data.RoomSessionStore
@@ -13,13 +14,16 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class AimForgeApp : Application() {
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val database: AppDatabase by lazy { AppDatabase.create(this) }
     val repository: AimForgeRepository by lazy { AimForgeRepository(database) }
 
     /** Phase 3: real MediaProjection capture. Nothing runs until the user approves a capture for a session. */
     val captureEngine: MediaProjectionCaptureEngine by lazy { MediaProjectionCaptureEngine(this) }
+
+    /** Phase 4: real CV metadata store. The engine that fills it is created fresh per session inside CaptureService. */
+    val cvAnalysisStore: RoomCvAnalysisStore by lazy { RoomCvAnalysisStore(database) }
 
     val sessionManager: SessionManager by lazy {
         SessionManager(RoomSessionStore(database), captureEngine)

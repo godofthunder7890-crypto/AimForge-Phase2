@@ -3,7 +3,8 @@ Personal BGMI aim coach. Observes only what you share via Android screen capture
 
 ## Status
 - Phase 1, Phase 2: complete and verified on a real realme GT 6T (GitHub Actions run 35562368282, commit 8829406).
-- Phase 3 (real MediaProjection screen capture): **code written, NOT yet verified**. See "Phase 3 verification" below. Do not treat it as complete until every box is ticked.
+- Phase 3 (real MediaProjection screen capture): implemented with real lifecycle and race protections; the latest CI verification is tracked in GitHub Actions.
+- Phase 4 (real first-pass computer vision): **code written, device verification pending**. See "Phase 4 verification" below.
 
 ## Phase 3: what is implemented
 - Real Android MediaProjection through the system consent dialog. No capture without the user approving it for that session.
@@ -16,6 +17,21 @@ Personal BGMI aim coach. Observes only what you share via Android screen capture
 - Screen rotation: the capture display is resized so frames keep full resolution when BGMI is landscape.
 - Storage: only metadata in Room (frames counted, resolution, measured rate, sampled/black counts, start/end, reason). No frames, video or audio are stored.
 - `FrameSource` for Phase 4: the engine already receives frames on a dedicated thread; Phase 4 will attach the analyzer there.
+
+## Phase 4: what is implemented
+- Real CV pipeline: `GraySampler` -> `FramePreprocessor` -> `HeuristicCrosshairDetector` -> `CrosshairTemporalTracker` -> `CvAnalysisEngine`.
+- Every third real captured frame is downsampled and analyzed on the capture thread to bound CPU and battery use.
+- Crosshair movement uses real frame timestamps and rejects large gaps or implausible jumps instead of fabricating motion.
+- Analysis metadata is persisted in the new `cv_analyses` Room table through the additive DB v3-to-v4 migration.
+- Session Detail shows frames processed, crosshair detection rate, confidence, movement samples, rejected jumps, skipped frames, and algorithm version.
+- No frames or video are persisted. Target detection remains an honest `NoOpTargetDetector`; no Aim Score, recommendation, or AI coaching is included.
+
+## Phase 4 verification
+- [ ] APK installs on the realme GT 6T
+- [ ] A real BGMI capture produces `Frames processed > 0`
+- [ ] Crosshair-visible gameplay produces a non-zero detection rate
+- [ ] Moving the view produces movement samples
+- [ ] Static/non-gameplay content reports an honest insufficient or not-detected state
 
 ## Phase 3: what is NOT implemented
 - Computer vision, aim metrics, Aim Score, recommendations (Phase 4+).

@@ -14,9 +14,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         TestSessionEntity::class,
         CaptureEntity::class,
         DiagnosticBatchEntity::class,
-        DiagnosticStepEntity::class
+        DiagnosticStepEntity::class,
+        CvAnalysisEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -25,6 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun sessionDao(): SessionDao
     abstract fun captureDao(): CaptureDao
     abstract fun diagnosticDao(): DiagnosticDao
+    abstract fun cvAnalysisDao(): CvAnalysisDao
 
     companion object {
         /**
@@ -76,9 +78,24 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v3 -> v4: Phase 4 adds one new table, cv_analyses. Nothing else changes. */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS cv_analyses (" +
+                        "sessionId TEXT NOT NULL, state TEXT NOT NULL, framesProcessed INTEGER NOT NULL, " +
+                        "framesWithCrosshair INTEGER NOT NULL, crosshairDetectionRate REAL, avgCrosshairConfidence REAL, " +
+                        "movementSamples INTEGER NOT NULL, avgMovementSpeedNormPerSec REAL, totalMovementDistanceNorm REAL, " +
+                        "rejectedJumps INTEGER NOT NULL, missedDetections INTEGER NOT NULL, longestGapMs INTEGER, " +
+                        "framesWithTarget INTEGER NOT NULL, targetDetectionRate REAL, droppedFrames INTEGER NOT NULL, " +
+                        "algorithmVersion TEXT NOT NULL, computedAtMs INTEGER NOT NULL, PRIMARY KEY(sessionId))"
+                )
+            }
+        }
+
         fun create(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "aimforge.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
     }
 }

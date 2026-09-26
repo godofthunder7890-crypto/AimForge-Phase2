@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.aimforge.app.data.AimForgeRepository
 import com.aimforge.app.data.CaptureEntity
+import com.aimforge.app.data.CvAnalysisEntity
 import com.aimforge.app.data.PlayerProfileEntity
 import com.aimforge.app.data.TestSessionEntity
 import com.aimforge.app.domain.CaptureGrant
@@ -42,6 +43,9 @@ class AppViewModel(
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val captures: StateFlow<List<CaptureEntity>> = repo.captures
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val cvAnalyses: StateFlow<List<CvAnalysisEntity>> = repo.cvAnalyses
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     /** The one open session (READY, waiting or capturing), if any. Survives app restart because it comes from Room. */

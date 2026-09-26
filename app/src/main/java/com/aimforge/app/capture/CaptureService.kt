@@ -28,6 +28,9 @@ import com.aimforge.app.AimForgeApp
 import com.aimforge.app.MainActivity
 import com.aimforge.app.R
 import com.aimforge.app.domain.CaptureRuntimeStatus
+import com.aimforge.app.domain.cv.CvAnalysisEngine
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
@@ -53,6 +56,8 @@ class CaptureService : Service() {
         /** Longest side of the captured frame. Keeps memory and battery use low; Phase 4 works on this size. */
         private const val LONG_SIDE_PX = 1280
         private const val SAMPLE_EVERY_N_FRAMES = 15
+        /** CV runs on every Nth captured frame, not every frame, to keep CPU/battery use bounded on the phone. */
+        private const val ANALYSIS_EVERY_N_FRAMES = 3
         private const val PUBLISH_INTERVAL_MS = 250L
     }
 
@@ -80,6 +85,9 @@ class CaptureService : Service() {
     private var lastFrameElapsed = 0L
     private var lastFrameWall = 0L
     private var lastPublishElapsed = 0L
+
+    private var cvEngine: CvAnalysisEngine? = null
+    private var analysisFramesSubmitted = 0
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -203,6 +211,8 @@ class CaptureService : Service() {
             dm.registerDisplayListener(listener, handler)
 
             val startedWall = System.currentTimeMillis()
+            cvEngine = CvAnalysisEngine()
+            analysisFramesSubmitted = 0
             // Only now is a capture really running.
             publishForActiveCapture {
                 it.copy(status = CaptureRuntimeStatus.RUNNING, width = w, height = h, startedAtMs = startedWall)
@@ -272,6 +282,20 @@ class CaptureService : Service() {
                 sampled++
                 if (s.isBlank) blank++
             }
+            if (frameCount % ANALYSIS_EVERY_N_FRAMES == 1) {
+                val plane = image.planes[0]
+                val cvFrame = GraySampler.build(
+                    plane.buffer,
+                    image.width,
+                    image.height,
+                    plane.rowStride,
+                    plane.pixelStride,
+                    frameCount,
+                    lastFrameWall
+                )
+                cvEngine?.onFrame(cvFrame)
+                analysisFramesSubmitted++
+            }
             publishProgress(force = frameCount == 1)
         } finally {
             image.close()
@@ -323,6 +347,17 @@ class CaptureService : Service() {
         val fps = measuredFps()
         val lastWall = if (frameCount > 0) lastFrameWall else null
         val stoppedWall = System.currentTimeMillis()
+
+        val sid = activeSessionId
+        val cv = cvEngine
+        if (sid != null && cv != null) {
+            val dropped = (frameCount - analysisFramesSubmitted).coerceAtLeast(0)
+            val result = cv.finalizeAnalysis(sid, dropped)
+            val app = application as AimForgeApp
+            app.appScope.launch(Dispatchers.IO) { app.cvAnalysisStore.save(result) }
+        }
+        cvEngine = null
+
         publishForActiveCapture {
             it.copy(
                 status = status,

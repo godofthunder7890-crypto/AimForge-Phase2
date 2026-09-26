@@ -9,7 +9,7 @@ ui/            theme, components, screens, AppViewModel, nav shell          (Pha
 domain/SessionManager  state machine, timer, lock, cancel/delete; SessionStore seam  (Phase 2, done)
 domain/Engines         CaptureEngine / AnalysisEngine / RecommendationEngine + NOT_IMPLEMENTED placeholders (Phase 2, done)
 capture/       MediaProjection + foreground service, frame source           (Phase 3)
-vision/        crosshair/target detection, per-frame observations           (Phase 4)
+domain/cv/     crosshair detection, temporal movement, CV session metrics   (Phase 4)
 analysis/      windowed metrics, confidence, error classifier, aim score    (Phase 5)
 recommend/     one-variable-at-a-time recommendation engine, anti-bad rules (Phase 6)
 experiment/    before/after comparison, keep/revert decision                (Phase 7)
@@ -43,6 +43,13 @@ UI only reads Room via Flows. Nothing leaves the device (no INTERNET permission)
 - Only `SessionManager` moves a session between states; `finalizeCapture` is idempotent (mutex) so user End, system stop and recovery cannot double-finalize.
 - DB v3: `test_sessions.failureReason`, `captures.sampledFrameCount/blankFrameCount/stopReason`. Migration 2 to 3 only adds nullable columns.
 - Capture resolution is fixed at long side 1280 px, resized on rotation. This is what Phase 4 will analyze.
+
+## Phase 4 notes
+- `domain/cv` is pure Kotlin and JVM-testable: it contains frame models, preprocessing, heuristic crosshair detection, temporal tracking, and honest result states.
+- `capture/GraySampler` converts real RGBA ImageReader planes into a small grayscale frame without persisting image data.
+- A fresh `CvAnalysisEngine` is created per capture and finalized once on the capture HandlerThread. Results are saved asynchronously as one Room row per session.
+- DB v4 adds only `cv_analyses`; `MIGRATION_3_4` is additive and leaves all Phase 3 tables unchanged.
+- The CV result is deliberately separate from the Phase 2/3 `AnalysisEngine` and does not create an Aim Score or recommendation.
 
 ### Phase 3 startup ordering and race fix
 

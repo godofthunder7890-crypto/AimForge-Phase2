@@ -123,3 +123,29 @@ data class DiagnosticStepEntity(
     /** null until this step is run as a real session. */
     val sessionId: String?
 )
+
+/**
+ * Phase 4 real computer-vision result for one session. One row per session, written once when the
+ * capture's analysis finishes. framesWithTarget/targetDetectionRate are always 0/0f today: no real
+ * target detector exists yet (see NoOpTargetDetector), and that is stored honestly rather than omitted.
+ */
+@Entity(tableName = "cv_analyses")
+data class CvAnalysisEntity(
+    @PrimaryKey val sessionId: String,
+    val state: String,
+    val framesProcessed: Int,
+    val framesWithCrosshair: Int,
+    val crosshairDetectionRate: Float?,
+    val avgCrosshairConfidence: Float?,
+    val movementSamples: Int,
+    val avgMovementSpeedNormPerSec: Float?,
+    val totalMovementDistanceNorm: Float?,
+    val rejectedJumps: Int,
+    val missedDetections: Int,
+    val longestGapMs: Long?,
+    val framesWithTarget: Int,
+    val targetDetectionRate: Float?,
+    val droppedFrames: Int,
+    val algorithmVersion: String,
+    val computedAtMs: Long
+)
