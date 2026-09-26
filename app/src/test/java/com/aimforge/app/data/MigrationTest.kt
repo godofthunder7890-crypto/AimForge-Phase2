@@ -16,13 +16,13 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Builds a real version-1 database (Phase 1 schema), then opens it with Room + MIGRATION_1_2.
+ * Builds a real version-1 database (Phase 1 schema), then opens it with Room + the complete v1-to-v4 path.
  * Room validates the migrated schema against the entities, so a wrong migration fails this test.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class MigrationTest {
-    @Test fun migration1to3_keepsProfileAndSensitivity_replacesSessionTable(): Unit = runBlocking {
+    @Test fun migration1to4_keepsProfileAndSensitivity_replacesSessionTable(): Unit = runBlocking {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val name = "migration-test.db"
         ctx.deleteDatabase(name)
@@ -40,7 +40,7 @@ class MigrationTest {
         v1.writableDatabase.close()
 
         val db = Room.databaseBuilder(ctx, AppDatabase::class.java, name)
-            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
 
