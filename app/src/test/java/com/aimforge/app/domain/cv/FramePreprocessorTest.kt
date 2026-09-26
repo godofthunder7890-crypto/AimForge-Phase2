@@ -7,7 +7,7 @@ class FramePreprocessorTest {
     private val pre = HistogramStretchPreprocessor()
 
     @Test fun stretchesRangeToFullZeroTo255() {
-        val g = byteArrayOf(50, 100, 150)
+        val g = byteArrayOf(50.toByte(), 100.toByte(), 150.toByte())
         val frame = Frame(0, 0, 3, 1, g)
         val out = pre.process(frame)
         assertEquals(0, out.gray[0].toInt() and 0xFF)
