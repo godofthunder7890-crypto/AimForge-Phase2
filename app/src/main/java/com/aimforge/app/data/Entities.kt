@@ -129,6 +129,74 @@ data class DiagnosticStepEntity(
  * capture's analysis finishes. framesWithTarget/targetDetectionRate are always 0/0f today: no real
  * target detector exists yet (see NoOpTargetDetector), and that is stored honestly rather than omitted.
  */
+/**
+ * Phase 5 real aim-metrics result for one session. One row per session, written once when the
+ * metrics engine finishes. Nullable fields are unavailable measurements, never a stored 0.
+ */
+@Entity(tableName = "aim_metrics")
+data class AimMetricsEntity(
+    @PrimaryKey val sessionId: String,
+    val status: String,
+
+    val framesProcessed: Int,
+    val validCrosshairSamples: Int,
+    val validTargetSamples: Int,
+    val crosshairDetectionRate: Float?,
+    val targetDetectionRate: Float?,
+    val droppedFrames: Int,
+    val timestampGapCount: Int,
+    val invalidTimestampSamples: Int,
+    val avgCrosshairConfidence: Float?,
+    val minCrosshairConfidence: Float?,
+    val trackingDurationMs: Long?,
+
+    val totalMovementDistance: Float?,
+    val averageMovementDistance: Float?,
+    val medianMovementDistance: Float?,
+
+    val horizontalMovementTotal: Float?,
+    val verticalMovementTotal: Float?,
+    val horizontalMovementNet: Float?,
+    val verticalMovementNet: Float?,
+
+    val averageSpeed: Float?,
+    val medianSpeed: Float?,
+    val peakSpeed: Float?,
+
+    val directionChangeCount: Int?,
+    val directionChangeRate: Float?,
+
+    val averageAcceleration: Float?,
+    val peakAcceleration: Float?,
+    val peakDeceleration: Float?,
+    val velocityVariance: Float?,
+    val accelerationVariance: Float?,
+    val directionReversalRate: Float?,
+
+    val microAdjustmentCount: Int?,
+    val microAdjustmentFrequency: Float?,
+    val averageMicroAdjustmentMagnitude: Float?,
+    val medianMicroAdjustmentMagnitude: Float?,
+
+    val overshootCount: Int?,
+    val correctionCount: Int?,
+    val averageCorrectionMagnitude: Float?,
+    val averageCorrectionTimeMs: Float?,
+
+    val averageTargetError: Float?,
+    val medianTargetError: Float?,
+    val minimumTargetError: Float?,
+    val maximumTargetError: Float?,
+    val targetErrorVariance: Float?,
+    val timeWithinTargetRegionMs: Long?,
+
+    val trackingContinuity: Float?,
+    val crosshairObservationCoverage: Float?,
+
+    val computedAtMs: Long,
+    val analysisDurationMs: Long?
+)
+
 @Entity(tableName = "cv_analyses")
 data class CvAnalysisEntity(
     @PrimaryKey val sessionId: String,

@@ -1,5 +1,8 @@
 package com.aimforge.app.domain.cv
 
+import com.aimforge.app.domain.metrics.AimMetricsResult
+import com.aimforge.app.domain.metrics.StreamingAimMetricsAccumulator
+
 /** Honest analysis states. See [CvAnalysisEngine.finalizeAnalysis] for exactly when each applies. */
 enum class CvAnalysisState(val label: String) {
     NO_DATA("No data"),
@@ -45,7 +48,7 @@ data class CvSessionAnalysis(
  */
 class CvAnalysisEngine(
     private val preprocessor: FramePreprocessor = HistogramStretchPreprocessor(),
-    private val crosshairDetector: CrosshairVisionDetector = HeuristicCrosshairDetector(),
+    private val crosshairDetector: CrosshairVisionDetector = LocalContrastCrosshairDetector(),
     private val targetDetector: TargetVisionDetector = NoOpTargetDetector(),
     private val tracker: TemporalTracker = CrosshairTemporalTracker(),
     private val clock: () -> Long = { System.currentTimeMillis() },
@@ -54,6 +57,11 @@ class CvAnalysisEngine(
     private val lowConfidenceThreshold: Float = 0.4f,
     private val partialRateThreshold: Float = 0.5f
 ) {
+    private companion object {
+        /** Cap on the diagnostic tail of retained observations. Not used for Phase 5 metrics. */
+        const val OBSERVATION_WINDOW = 300
+    }
+
     private var framesProcessed = 0
     private var framesWithCrosshair = 0
     private var confidenceSum = 0.0
@@ -64,6 +72,14 @@ class CvAnalysisEngine(
     private var missedDetections = 0
     private var longestGapMs = 0L
     private var framesWithTarget = 0
+
+    // Phase 5 metrics are computed INCREMENTALLY from every processed frame in O(1) memory, so a session of
+    // any length is represented in full (an earlier design buffered the last 1200 observations and silently
+    // lost the start of long sessions). See StreamingAimMetricsAccumulator.
+    private val metricsAccumulator = StreamingAimMetricsAccumulator()
+
+    // Small diagnostic-only tail of recent observations (NOT the source of Phase 5 metrics any more).
+    private val observations = ArrayDeque<FrameObservation>()
 
     /** Feed one real, already-downsampled frame. Call from a background thread; this does real per-pixel work. */
     fun onFrame(rawFrame: Frame) {
@@ -90,7 +106,19 @@ class CvAnalysisEngine(
             TrackEvent.NoDetection -> missedDetections++
             TrackEvent.FirstDetection -> Unit
         }
+
+        val observation = FrameObservation(rawFrame.frameIndex, rawFrame.timestampMs, crosshair, target)
+        metricsAccumulator.onObservation(observation)
+        observations.addLast(observation)
+        if (observations.size > OBSERVATION_WINDOW) observations.removeFirst()
     }
+
+    /** Diagnostic tail only (last [OBSERVATION_WINDOW] observations). Phase 5 metrics do not use this. */
+    fun snapshotObservations(): List<FrameObservation> = observations.toList()
+
+    /** Final Phase 5 metrics for the WHOLE session, computed by streaming (no observation cap). */
+    fun finalizeAimMetrics(sessionId: String, droppedFrames: Int): AimMetricsResult =
+        metricsAccumulator.finalizeResult(sessionId, droppedFrames)
 
     /**
      * Call once, after the capture has ended. [droppedFrames] is the number of frames the capture

@@ -29,14 +29,16 @@ class TemporalTrackerTest {
         assertEquals(0.04f, ev.sample.deltaXNorm, 0.001f)
         assertEquals(0f, ev.sample.deltaYNorm, 0.001f)
         assertEquals(0.04f, ev.sample.distanceNorm, 0.001f)
-        assertEquals(0.4f, ev.sample.speedNormPerSec, 0.01f)
-        assertEquals(0f, ev.sample.directionDeg, 0.5f)
+        assertEquals(0.4f, ev.sample.speedNormPerSec, 0.01f) // 0.04 over 100ms = 0.4/s
+        assertEquals(0f, ev.sample.directionDeg, 0.5f) // pure +x movement = 0 degrees
     }
 
     @Test fun gapLargerThanMaxIsNotBridgedIntoMovement() {
         val t = CrosshairTemporalTracker(maxGapMs = 500)
         t.accept(det(1, 1000, 0.2f, 0.2f))
-        assertTrue(t.accept(det(2, 2000, 0.9f, 0.9f)) is TrackEvent.GapTooLarge)
+        val ev = t.accept(det(2, 2000, 0.9f, 0.9f))
+        assertTrue(ev is TrackEvent.GapTooLarge)
+        // tracking resumes from the new point, not the old one
         val next = t.accept(det(3, 2050, 0.91f, 0.9f)) as TrackEvent.Movement
         assertTrue(next.sample.distanceNorm < 0.1f)
     }
@@ -44,7 +46,9 @@ class TemporalTrackerTest {
     @Test fun implausibleJumpIsRejectedAndDoesNotMoveTrackedPosition() {
         val t = CrosshairTemporalTracker(maxPlausibleSpeedNormPerSec = 1f)
         t.accept(det(1, 1000, 0.1f, 0.1f))
-        assertTrue(t.accept(det(2, 1010, 0.9f, 0.9f)) is TrackEvent.ImplausibleJump)
+        val jump = t.accept(det(2, 1010, 0.9f, 0.9f)) // huge distance in 10ms
+        assertTrue(jump is TrackEvent.ImplausibleJump)
+        // next plausible detection measures from the ORIGINAL point, proving the jump was not accepted
         val ev = t.accept(det(3, 1300, 0.15f, 0.1f)) as TrackEvent.Movement
         assertEquals(0.05f, ev.sample.distanceNorm, 0.005f)
     }

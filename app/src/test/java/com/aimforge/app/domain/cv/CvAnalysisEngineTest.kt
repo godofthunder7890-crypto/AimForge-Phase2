@@ -19,6 +19,7 @@ private class ScriptedDetector(private val script: List<CrosshairDetection>) : C
 private fun detected(frame: Int, x: Float, conf: Float) =
     CrosshairDetection(frame, frame * 100L, true, x, 0.5f, confidence = conf, method = "scripted-test-v1")
 private fun missed(frame: Int) = CrosshairDetection.notDetected(frame, frame * 100L, "scripted-test-v1")
+
 private fun frame(i: Int) = Frame(i, i * 100L, 4, 4, ByteArray(16))
 
 class CvAnalysisEngineTest {

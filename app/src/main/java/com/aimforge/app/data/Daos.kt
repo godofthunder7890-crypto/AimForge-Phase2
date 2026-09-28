@@ -89,6 +89,21 @@ interface CvAnalysisDao {
 }
 
 @Dao
+interface AimMetricsDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(entity: AimMetricsEntity)
+
+    @Query("SELECT * FROM aim_metrics")
+    fun observeAll(): Flow<List<AimMetricsEntity>>
+
+    @Query("SELECT * FROM aim_metrics WHERE sessionId = :sessionId")
+    suspend fun forSession(sessionId: String): AimMetricsEntity?
+
+    @Query("DELETE FROM aim_metrics WHERE sessionId = :sessionId")
+    suspend fun deleteForSession(sessionId: String)
+}
+
+@Dao
 interface DiagnosticDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertBatch(batch: DiagnosticBatchEntity)

@@ -15,9 +15,10 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CaptureEntity::class,
         DiagnosticBatchEntity::class,
         DiagnosticStepEntity::class,
-        CvAnalysisEntity::class
+        CvAnalysisEntity::class,
+        AimMetricsEntity::class
     ],
-    version = 4,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -27,6 +28,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun captureDao(): CaptureDao
     abstract fun diagnosticDao(): DiagnosticDao
     abstract fun cvAnalysisDao(): CvAnalysisDao
+    abstract fun aimMetricsDao(): AimMetricsDao
 
     companion object {
         /**
@@ -93,9 +95,42 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v4 -> v5: Phase 5 adds one new table, aim_metrics. Nothing else changes. */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS aim_metrics (" +
+                        "sessionId TEXT NOT NULL, status TEXT NOT NULL, " +
+                        "framesProcessed INTEGER NOT NULL, validCrosshairSamples INTEGER NOT NULL, validTargetSamples INTEGER NOT NULL, " +
+                        "crosshairDetectionRate REAL, targetDetectionRate REAL, droppedFrames INTEGER NOT NULL, " +
+                        "timestampGapCount INTEGER NOT NULL, invalidTimestampSamples INTEGER NOT NULL, " +
+                        "avgCrosshairConfidence REAL, minCrosshairConfidence REAL, trackingDurationMs INTEGER, " +
+                        "totalMovementDistance REAL, averageMovementDistance REAL, medianMovementDistance REAL, " +
+                        "horizontalMovementTotal REAL, verticalMovementTotal REAL, horizontalMovementNet REAL, verticalMovementNet REAL, " +
+                        "averageSpeed REAL, medianSpeed REAL, peakSpeed REAL, " +
+                        "directionChangeCount INTEGER, directionChangeRate REAL, " +
+                        "averageAcceleration REAL, peakAcceleration REAL, peakDeceleration REAL, " +
+                        "velocityVariance REAL, accelerationVariance REAL, directionReversalRate REAL, " +
+                        "microAdjustmentCount INTEGER, microAdjustmentFrequency REAL, averageMicroAdjustmentMagnitude REAL, medianMicroAdjustmentMagnitude REAL, " +
+                        "overshootCount INTEGER, correctionCount INTEGER, averageCorrectionMagnitude REAL, averageCorrectionTimeMs REAL, " +
+                        "averageTargetError REAL, medianTargetError REAL, minimumTargetError REAL, maximumTargetError REAL, " +
+                        "targetErrorVariance REAL, timeWithinTargetRegionMs INTEGER, " +
+                        "trackingContinuity REAL, computedAtMs INTEGER NOT NULL, analysisDurationMs INTEGER, " +
+                        "PRIMARY KEY(sessionId))"
+                )
+            }
+        }
+
+        /** v5 -> v6: adds aim_metrics.crosshairObservationCoverage (Part 9's redefinition of tracking continuity keeps the old column too, as its own real metric, and adds this one alongside it). */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE aim_metrics ADD COLUMN crosshairObservationCoverage REAL")
+            }
+        }
+
         fun create(context: Context): AppDatabase =
             Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "aimforge.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
     }
 }

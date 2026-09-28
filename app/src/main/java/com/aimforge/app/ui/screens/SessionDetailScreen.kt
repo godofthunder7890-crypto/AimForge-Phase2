@@ -32,6 +32,7 @@ import com.aimforge.app.domain.AimErrorState
 import com.aimforge.app.domain.AnalysisStatus
 import com.aimforge.app.domain.CaptureStatus
 import com.aimforge.app.domain.cv.CvAnalysisState
+import com.aimforge.app.domain.metrics.AimMetricsStatus
 import com.aimforge.app.domain.Distance
 import com.aimforge.app.domain.SessionFormat
 import com.aimforge.app.domain.TargetType
@@ -53,6 +54,7 @@ fun SessionDetailScreen(
     val sessions by vm.sessions.collectAsState()
     val captures by vm.captures.collectAsState()
     val cvAnalyses by vm.cvAnalyses.collectAsState()
+    val aimMetrics by vm.aimMetrics.collectAsState()
     val s = sessions.firstOrNull { it.sessionId == sessionId }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
 
@@ -93,32 +95,6 @@ fun SessionDetailScreen(
             KeyValueRow("State", s.sessionState.label)
             KeyValueRow("Duration", if (s.startedAt == null) "Not started" else SessionFormat.duration(elapsed))
             s.notes?.let { KeyValueRow("Notes", it) }
-        }
-
-        GlassCard(Modifier.fillMaxWidth()) {
-            SectionTitle("COMPUTER VISION")
-            val cv = cvAnalyses.firstOrNull { it.sessionId == s.sessionId }
-            if (cv == null) {
-                Text("Not analyzed", style = MaterialTheme.typography.bodyLarge, color = AF.TextSecondary)
-            } else {
-                val state = CvAnalysisState.entries.firstOrNull { it.name == cv.state }
-                KeyValueRow("Status", state?.label ?: cv.state)
-                KeyValueRow("Frames processed", cv.framesProcessed.toString())
-                KeyValueRow("Frames with crosshair", cv.framesWithCrosshair.toString())
-                KeyValueRow("Detection rate", cv.crosshairDetectionRate?.let { "${(it * 100).toInt()}%" } ?: "--")
-                KeyValueRow("Avg confidence", cv.avgCrosshairConfidence?.let { "${(it * 100).toInt()}%" } ?: "--")
-                KeyValueRow("Movement samples", cv.movementSamples.toString())
-                KeyValueRow("Rejected jumps", cv.rejectedJumps.toString())
-                KeyValueRow("Missed frames", cv.missedDetections.toString())
-                KeyValueRow("Frames skipped (throttled)", cv.droppedFrames.toString())
-                KeyValueRow("Algorithm", cv.algorithmVersion)
-                Text(
-                    "Target detection is not implemented in this phase; crosshair-to-target error is not available yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = AF.TextSecondary,
-                    modifier = Modifier.padding(top = 6.dp)
-                )
-            }
         }
 
         GlassCard(Modifier.fillMaxWidth()) {
@@ -163,6 +139,58 @@ fun SessionDetailScreen(
                 c.stopReason?.let { KeyValueRow("Ended by", it) }
                 s.failureReason?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = AF.Signal) }
                 KeyValueRow("Frames stored", "No (counted live, not saved)")
+            }
+        }
+
+        GlassCard(Modifier.fillMaxWidth()) {
+            SectionTitle("COMPUTER VISION")
+            val cv = cvAnalyses.firstOrNull { it.sessionId == s.sessionId }
+            if (cv == null) {
+                Text("Not analyzed", style = MaterialTheme.typography.bodyLarge, color = AF.TextSecondary)
+            } else {
+                val state = CvAnalysisState.entries.firstOrNull { it.name == cv.state }
+                KeyValueRow("Status", state?.label ?: cv.state)
+                KeyValueRow("Frames processed", cv.framesProcessed.toString())
+                KeyValueRow("Frames with crosshair", cv.framesWithCrosshair.toString())
+                KeyValueRow("Detection rate", cv.crosshairDetectionRate?.let { "${(it * 100).toInt()}%" } ?: "--")
+                KeyValueRow("Avg confidence", cv.avgCrosshairConfidence?.let { "${(it * 100).toInt()}%" } ?: "--")
+                KeyValueRow("Movement samples", cv.movementSamples.toString())
+                KeyValueRow("Rejected jumps", cv.rejectedJumps.toString())
+                KeyValueRow("Missed frames", cv.missedDetections.toString())
+                KeyValueRow("Frames skipped (throttled)", cv.droppedFrames.toString())
+                KeyValueRow("Algorithm", cv.algorithmVersion)
+                Text(
+                    "Target detection is not implemented in this phase; crosshair-to-target error is not available yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AF.TextSecondary,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
+            }
+        }
+
+        GlassCard(Modifier.fillMaxWidth()) {
+            SectionTitle("AIM METRICS")
+            val m = aimMetrics.firstOrNull { it.sessionId == s.sessionId }
+            if (m == null) {
+                Text("Not available yet", style = MaterialTheme.typography.bodyLarge, color = AF.TextSecondary)
+            } else {
+                val status = AimMetricsStatus.entries.firstOrNull { it.name == m.status }
+                KeyValueRow("Status", status?.label ?: m.status)
+                KeyValueRow("Total movement distance", m.totalMovementDistance?.let { "%.3f".format(it) } ?: "Not available yet")
+                KeyValueRow("Average speed", m.averageSpeed?.let { "%.3f /s".format(it) } ?: "Not available yet")
+                KeyValueRow("Peak speed", m.peakSpeed?.let { "%.3f /s".format(it) } ?: "Not available yet")
+                KeyValueRow("Direction changes", m.directionChangeCount?.toString() ?: "Not available yet")
+                KeyValueRow("Micro-adjustments", m.microAdjustmentCount?.toString() ?: "Not available yet")
+                KeyValueRow("Avg target error", m.averageTargetError?.let { "%.3f".format(it) } ?: "Not available yet")
+                KeyValueRow("Overshoot / correction", if (m.overshootCount != null) "${m.overshootCount} / ${m.correctionCount}" else "Not available yet")
+                KeyValueRow("Crosshair coverage", m.crosshairObservationCoverage?.let { "${(it * 100).toInt()}%" } ?: "Not available yet")
+                KeyValueRow("Tracking continuity", m.trackingContinuity?.let { "${(it * 100).toInt()}%" } ?: "Not available yet")
+                Text(
+                    "Movement units are normalized to screen size, so they compare across resolutions. Target-based metrics need target detection, not implemented yet.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AF.TextSecondary,
+                    modifier = Modifier.padding(top = 6.dp)
+                )
             }
         }
 

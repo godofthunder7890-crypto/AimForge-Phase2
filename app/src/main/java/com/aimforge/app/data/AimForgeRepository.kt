@@ -12,6 +12,7 @@ class AimForgeRepository(private val db: AppDatabase) {
     val sessions: Flow<List<TestSessionEntity>> = db.sessionDao().observeAll()
     val captures: Flow<List<CaptureEntity>> = db.captureDao().observeAll()
     val cvAnalyses: Flow<List<CvAnalysisEntity>> = db.cvAnalysisDao().observeAll()
+    val aimMetrics: Flow<List<AimMetricsEntity>> = db.aimMetricsDao().observeAll()
 
     suspend fun completeOnboarding(device: String, control: String, gyro: Boolean) {
         db.profileDao().upsert(

@@ -22,7 +22,7 @@ class GraySamplerTest {
         val buf = rgbaFrame(640, 320) { _, _ -> 100 }
         val frame = GraySampler.build(buf, 640, 320, 640 * 4, 4, frameIndex = 7, timestampMs = 12345, outWidth = 160)
         assertEquals(160, frame.width)
-        assertEquals(80, frame.height)
+        assertEquals(80, frame.height) // same 2:1 aspect ratio, scaled down
         assertEquals(160 * 80, frame.gray.size)
         assertEquals(7, frame.frameIndex)
         assertEquals(12345L, frame.timestampMs)
@@ -53,5 +53,43 @@ class GraySamplerTest {
         val frame = GraySampler.build(buf, 4, 4, 4 * 4, 4, 0, 0, outWidth = 0)
         assertEquals(1, frame.width)
         assertTrue(frame.height >= 1)
+    }
+}
+
+/** Central-crop sampling: TEST FIXTURES only. */
+class GraySamplerCropTest {
+    private fun rgba(w: Int, h: Int, fill: (Int, Int) -> Triple<Int, Int, Int>): java.nio.ByteBuffer {
+        val buf = java.nio.ByteBuffer.allocate(w * 4 * h)
+        for (y in 0 until h) for (x in 0 until w) {
+            val (r, g, b) = fill(x, y)
+            val i = (y * w + x) * 4
+            buf.put(i, r.toByte()); buf.put(i + 1, g.toByte()); buf.put(i + 2, b.toByte()); buf.put(i + 3, 0xFF.toByte())
+        }
+        return buf
+    }
+
+    @Test fun redCrosshairPixelIsBrightUnderMaxChannelButWouldBeDarkUnderLuma() {
+        val buf = rgba(400, 200) { x, y -> if (x == 200 && y == 100) Triple(255, 0, 0) else Triple(10, 10, 10) }
+        val f = GraySampler.buildCentralCrop(buf, 400, 200, 400 * 4, 4, 0, 0, cropFraction = 0.5f, outWidth = 200)
+        val max = f.gray.maxOf { it.toInt() and 0xFF }
+        assertEquals(255, max)                        // max(R,G,B)
+        assertTrue((255 * 299 + 0 + 0) / 1000 < 100)  // luma of the same pixel would be ~76
+    }
+
+    @Test fun cropCarriesSourceMappingAndDoesNotUpsample() {
+        val buf = rgba(400, 200) { _, _ -> Triple(50, 50, 50) }
+        val f = GraySampler.buildCentralCrop(buf, 400, 200, 400 * 4, 4, 5, 77, cropFraction = 0.5f, outWidth = 500)
+        assertEquals(400, f.sourceWidth); assertEquals(200, f.sourceHeight)
+        assertEquals(100, f.cropOffsetXPx); assertEquals(50, f.cropOffsetYPx)
+        assertEquals(200, f.cropWidthPx); assertEquals(100, f.cropHeightPx)
+        assertEquals(200, f.width)                    // capped at the crop's real pixel width, no invented detail
+        assertEquals(0.5f, f.toSourceNormX(f.width / 2f), 0.01f)
+    }
+
+    @Test fun portraitSourceWorksToo() {
+        val buf = rgba(200, 400) { _, _ -> Triple(20, 20, 20) }
+        val f = GraySampler.buildCentralCrop(buf, 200, 400, 200 * 4, 4, 0, 0, cropFraction = 0.5f, outWidth = 100)
+        assertEquals(200, f.sourceWidth); assertEquals(400, f.sourceHeight)
+        assertEquals(0.5f, f.toSourceNormY(f.height / 2f), 0.01f)
     }
 }

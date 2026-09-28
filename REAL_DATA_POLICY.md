@@ -47,8 +47,17 @@ Priority: real functionality > UI, accurate analysis > animation, real data > de
 ## Phase 4 data sources
 | Screen value | Source |
 |---|---|
-| Frames processed, frames with crosshair, detection rate | Real captured frames submitted to the CV pipeline |
-| Movement samples, speed, distance | Accepted crosshair detections with real frame timestamps |
-| Confidence | Detector evidence from contrast, compactness, and centeredness |
-| Frames skipped | Real capture frame count minus frames submitted for analysis |
-| Frames with target | Always 0 in this phase; no real target detector is shipped |
+| Frames processed, frames with crosshair, detection rate | counted from real `CrosshairVisionDetector` results on real captured (downsampled) frames |
+| Movement samples, speed, distance | `CrosshairTemporalTracker` output between real accepted detections with real timestamps |
+| Confidence | the detector's own evidence-based score (contrast, compactness, centeredness of the detected cluster) |
+| Frames with target / target rate | always 0 — `NoOpTargetDetector`, no real target detector implemented yet |
+| Frames skipped (throttled) | real capture frame count minus frames actually submitted for analysis |
+
+## Phase 5 data sources
+| Screen value | Source |
+|---|---|
+| Movement distance/speed/direction | computed from real consecutive confident crosshair detections and their real timestamps (`MovementCalculator`) |
+| Acceleration, variance, reversals | computed only between temporally contiguous movement steps (`KinematicsCalculator`) |
+| Micro-adjustments | real movement steps below a configurable, resolution-independent normalized threshold |
+| Target error / overshoot / correction | real aligned crosshair+target detections only; always unavailable (null) today since no real target detector exists |
+| Any null field | not a stored 0 — means the real evidence needed for that metric was not there |

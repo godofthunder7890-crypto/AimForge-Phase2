@@ -10,7 +10,10 @@ data class CrosshairDetection(
     val boxWidthNorm: Float? = null,
     val boxHeightNorm: Float? = null,
     val confidence: Float = 0f,
-    val method: String
+    val method: String,
+    /** Development diagnostics (Phase 4/5 detector tuning), never used to fabricate a detection. */
+    val candidateCount: Int? = null,
+    val rejectionReason: String? = null
 ) {
     companion object {
         fun notDetected(frameIndex: Int, timestampMs: Long, method: String) =
