@@ -2,6 +2,7 @@ package com.aimforge.app
 
 import android.app.Application
 import com.aimforge.app.capture.MediaProjectionCaptureEngine
+import com.aimforge.app.data.RoomAimMetricsStore
 import com.aimforge.app.data.RoomCvAnalysisStore
 import com.aimforge.app.data.AimForgeRepository
 import com.aimforge.app.data.AppDatabase
@@ -24,6 +25,9 @@ class AimForgeApp : Application() {
 
     /** Phase 4: real CV metadata store. The engine that fills it is created fresh per session inside CaptureService. */
     val cvAnalysisStore: RoomCvAnalysisStore by lazy { RoomCvAnalysisStore(database) }
+
+    /** Phase 5: real aim-metrics store. The engine that fills it is created fresh per finished capture in CaptureService. */
+    val aimMetricsStore: RoomAimMetricsStore by lazy { RoomAimMetricsStore(database) }
 
     val sessionManager: SessionManager by lazy {
         SessionManager(RoomSessionStore(database), captureEngine)

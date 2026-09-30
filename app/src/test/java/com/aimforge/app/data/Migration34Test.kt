@@ -18,11 +18,12 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class Migration34Test {
-    @Test fun migration3to4_addsCvAnalysesTable_keepsEverythingElse(): Unit = runBlocking {
+    @Test fun migration3to4_addsCvAnalysesTable_keepsEverythingElse() = runBlocking {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         val name = "migration34-test.db"
         ctx.deleteDatabase(name)
 
+        // Build a real v3 database first, using the app's own v1->v2->v3 migrations (already verified).
         val v3 = Room.databaseBuilder(ctx, AppDatabaseV3Stub::class.java, name)
             .addMigrations()
             .allowMainThreadQueries()
@@ -40,12 +41,15 @@ class Migration34Test {
         v3.close()
 
         val db = Room.databaseBuilder(ctx, AppDatabase::class.java, name)
-            .addMigrations(AppDatabase.MIGRATION_3_4)
+            .addMigrations(AppDatabase.MIGRATION_3_4, AppDatabase.MIGRATION_4_5, AppDatabase.MIGRATION_5_6)
             .allowMainThreadQueries()
             .build()
 
+        // Existing v3 data survives untouched.
         assertEquals(1, db.sessionDao().observeAll().first().size)
         assertEquals("m34", db.sessionDao().get("m34")!!.sessionId)
+
+        // New table is usable.
         assertTrue(db.cvAnalysisDao().observeAll().first().isEmpty())
         val store = RoomCvAnalysisStore(db)
         store.save(

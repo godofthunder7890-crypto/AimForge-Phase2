@@ -284,7 +284,8 @@ class CaptureService : Service() {
             }
             if (frameCount % ANALYSIS_EVERY_N_FRAMES == 1) {
                 val plane = image.planes[0]
-                val cvFrame = GraySampler.build(
+                // Central crop at max(R,G,B), preserving thin/colored crosshair structure.
+                val cvFrame = GraySampler.buildCentralCrop(
                     plane.buffer,
                     image.width,
                     image.height,
@@ -352,9 +353,14 @@ class CaptureService : Service() {
         val cv = cvEngine
         if (sid != null && cv != null) {
             val dropped = (frameCount - analysisFramesSubmitted).coerceAtLeast(0)
-            val result = cv.finalizeAnalysis(sid, dropped)
+            val cvResult = cv.finalizeAnalysis(sid, dropped)
+            // Phase 5: metrics are accumulated from the same real observations, with no second capture or replay.
+            val metrics = cv.finalizeAimMetrics(sid, dropped)
             val app = application as AimForgeApp
-            app.appScope.launch(Dispatchers.IO) { app.cvAnalysisStore.save(result) }
+            app.appScope.launch(Dispatchers.IO) {
+                app.cvAnalysisStore.save(cvResult)
+                app.aimMetricsStore.save(metrics)
+            }
         }
         cvEngine = null
 
